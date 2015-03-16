@@ -1,7 +1,7 @@
 /**
  *
- * Solar panel pulse counter based on arduino pro mini, esp8266 and a LDR
- * 
+ * Solar panel pulse counter using an arduino pro mini, esp8266 and a LDR
+ * Based on the demo sketch provided with the ITEAD ESP8266 library
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation; either version 2 of
