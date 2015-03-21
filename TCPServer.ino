@@ -1,3 +1,5 @@
+#include <MemoryFree.h>
+
 /**
  *
  * Solar panel pulse counter using an arduino pro mini, esp8266 and a LDR
@@ -34,69 +36,68 @@ ESP8266 wifi(mySerial);
 void setup(void)
 {
     Serial.begin(9600);
-    Serial.print("setup begin\r\n");
-    
-    Serial.print("FW Version:");
-    Serial.println(wifi.getVersion().c_str());
-      
-    if (wifi.setOprToStationSoftAP()) {
-        Serial.print("to station + softap ok\r\n");
-    } else {
-        Serial.print("to station + softap err\r\n");
-    }
- 
-    if (wifi.joinAP(SSID, PASSWORD)) {
-        Serial.print("Join AP success\r\n");
-        Serial.print("IP: ");
-        Serial.println(wifi.getLocalIP().c_str());    
-    } else {
-        Serial.print("Join AP failure\r\n");
-    }
-    
-    if (wifi.enableMUX()) {
-        Serial.print("multiple ok\r\n");
-    } else {
-        Serial.print("multiple err\r\n");
-    }
-    
-    if (wifi.startTCPServer(8090)) {
-        Serial.print("start tcp server ok\r\n");
-    } else {
-        Serial.print("start tcp server err\r\n");
-    }
-    
-    if (wifi.setTCPServerTimeout(10)) { 
-        Serial.print("set tcp server timout 10 seconds\r\n");
-    } else {
-        Serial.print("set tcp server timout err\r\n");
-    }
+    Serial.print(F("setup begin\r\n"));
+    initialize_esp();
 
-    Serial.print("setup end\r\n");
 }
  
          int count_blinks = 0;
          int every4th = 0;
+         int every1000th = 0;
+         int iscounted = 0;
+         int restarts = 0;
+         int freemem = 0;
+         unsigned long nolove = millis();
 
 void loop(void)
 {
-  
     uint8_t buffer[128] = {0};
     uint8_t mux_id;
-        uint8_t sens[1] = {0};
+        uint8_t sens[4] = {0};
          int blah = analogRead(A0);
        // sens[0] = blah;
    
-    // Serial.println(count_blinks);
+  //   Serial.println(blah);
     
     //figure out if there has been a blink
     
+    
     if(blah > 30)
     {
-      count_blinks++;
-      sens[0] = count_blinks;
-    }
+      if(iscounted == 0)
+      {
         
-      
+        Serial.print("incrementing blinks, blah is: ");
+        Serial.println(blah);
+        count_blinks++;
+    //    sens[0] = count_blinks;
+        iscounted = 1;
+      } 
+    }
+    
+  if (blah < 30)
+  {
+    if(iscounted == 1)
+    {
+      iscounted = 0;
+    }
+
+  }  
+ 
+   if(millis()- nolove > 120000)
+{
+
+          Serial.println("No love..... going to restart the wifi module and reinitialize");
+          restarts++;
+        wifi.restart();
+        initialize_esp();
+        nolove = millis();
+          Serial.print("Nolove = ");
+          Serial.print(nolove);
+          Serial.print(" Millis = ");
+          Serial.println(millis());
+}
+
     
     
     
@@ -106,9 +107,10 @@ void loop(void)
     
     
     if (len > 0) {
-        Serial.print("Status:[");
-        Serial.print(wifi.getIPStatus().c_str());
-        Serial.println("]");
+      nolove=millis();
+ //       Serial.print("Status:[");
+//        Serial.print(wifi.getIPStatus().c_str());
+//        Serial.println("]");
     // int sensorValue[5] = {analogRead(A0)};    
     
         //memcpy(sens, sensorValue, 4);
@@ -116,33 +118,38 @@ void loop(void)
         //Serial.print(sensorValue[0]);
         
         
-        Serial.print("Received from :");
-        Serial.print(mux_id);
-        Serial.print("[");
-        for(uint32_t i = 0; i < len; i++) {
-            Serial.print((char)buffer[i]);
-        }
-        Serial.print("]\r\n");
+//        Serial.print("Received from :");
+ //       Serial.print(mux_id);
+ //       Serial.print("[");
+ //       for(uint32_t i = 0; i < len; i++) {
+//            Serial.print((char)buffer[i]);
+//        }
+ //       Serial.print("]\r\n");
         sens[0] = count_blinks;
+ //       sens[1] = 5;
+ //       freemem = freeMemory()/10;
+ //       sens[2] = freemem;
         if(wifi.send(mux_id, sens, len)) {
-            Serial.print("send back ok\r\n");
+ //           Serial.print("send back ok\r\n");
+            // Serial.print("Content of sens = ");
+            // Serial.println(sens);
         } else {
-            Serial.print("send back err\r\n");
+            Serial.print(F("send back err\r\n"));
         }
         
         if (wifi.releaseTCP(mux_id)) {
-            Serial.print("release tcp ");
-            Serial.print(mux_id);
-            Serial.println(" ok");
+   //         Serial.print("release tcp ");
+   //         Serial.print(mux_id);
+ //           Serial.println(" ok");
         } else {
-            Serial.print("release tcp");
+            Serial.print(F("release tcp"));
             Serial.print(mux_id);
-            Serial.println(" err");
+            Serial.println(F(" err"));
         }
         
-        Serial.print("Status:[");
-        Serial.print(wifi.getIPStatus().c_str());
-        Serial.println("]");
+//        Serial.print("Status:[");
+//        Serial.print(wifi.getIPStatus().c_str());
+ //       Serial.println("]");
                 count_blinks = 0;
     
     }
@@ -152,5 +159,78 @@ void loop(void)
     {
       every4th++;
     }
+    if (every1000th = 999)
+    {
+  //  Serial.print("freeMemory()=");
+ //   Serial.println(freeMemory());
+  //    Serial.println(freemem);
+
+      if(wifi.kick())
+      {
+ //       Serial.println("WIFI is Alive and kicking!!!");
+      }
+      else
+      {
+       Serial.println("Oops WIFI is dead!!!, restarting...");
+        restarts++;
+        wifi.restart();
+        initialize_esp();
+      }
+      
+      
+     every1000th=0; 
+    }
+    else
+    {
+      every1000th++;
+    }
+    
+    
+    
 }
+
+void initialize_esp(void)
+{
+    Serial.print(F("FW Version:"));
+    Serial.println(wifi.getVersion().c_str());
+      
+    if (wifi.setOprToStationSoftAP()) {
+        Serial.print(F("to station + softap ok\r\n"));
+    } else {
+        Serial.print(F("to station + softap err\r\n"));
+    }
+ 
+    if (wifi.joinAP(SSID, PASSWORD)) {
+        Serial.print(F("Join AP success\r\n"));
+        Serial.print(F("IP: "));
+        Serial.println(wifi.getLocalIP().c_str());    
+    } else {
+        Serial.print(F("Join AP failure\r\n"));
+    }
+    
+    if (wifi.enableMUX()) {
+        Serial.print(F("multiple ok\r\n"));
+    } else {
+        Serial.print(F("multiple err\r\n"));
+    }
+    
+    if (wifi.startTCPServer(8090)) {
+        Serial.print(F("start tcp server ok\r\n"));
+    } else {
+        Serial.print(F("start tcp server err\r\n"));
+    }
+    
+    if (wifi.setTCPServerTimeout(10)) { 
+        Serial.print(F("set tcp server timout 10 seconds\r\n"));
+    } else {
+        Serial.print(F("set tcp server timout err\r\n"));
+    }
+
+    Serial.print(F("setup end\r\n"));  
+  
+  nolove=millis();
+  
+}
+
+
         
