@@ -16,7 +16,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
+#define INTERRUPT_INPUT 3
 #include "ESP8266.h"
 
 #define SSID        "xxxx"
@@ -37,10 +37,17 @@ void setup(void)
 {
     Serial.begin(9600);
     Serial.print(F("setup begin\r\n"));
+    
+      // For noise suppression, enable pullup on interrupt pin
+  digitalWrite(INTERRUPT_INPUT, HIGH);
+  attachInterrupt(INTERRUPT_INPUT - 2,
+                  interrupt_handler,
+                  RISING);
     initialize_esp();
 
 }
- 
+ int pulse_counter = 0;
+
          int count_blinks = 0;
          int every4th = 0;
          int every1000th = 0;
@@ -54,6 +61,7 @@ void loop(void)
     uint8_t buffer[128] = {0};
     uint8_t mux_id;
         uint8_t sens[4] = {0};
+/* superceded through interrupt handling        
          int blah = analogRead(A0);
        // sens[0] = blah;
    
@@ -83,6 +91,10 @@ void loop(void)
     }
 
   }  
+ 
+ */
+ 
+ 
  
    if(millis()- nolove > 120000)
 {
@@ -125,7 +137,7 @@ void loop(void)
 //            Serial.print((char)buffer[i]);
 //        }
  //       Serial.print("]\r\n");
-        sens[0] = count_blinks;
+        sens[0] = pulse_counter;
  //       sens[1] = 5;
  //       freemem = freeMemory()/10;
  //       sens[2] = freemem;
@@ -150,7 +162,7 @@ void loop(void)
 //        Serial.print("Status:[");
 //        Serial.print(wifi.getIPStatus().c_str());
  //       Serial.println("]");
-                count_blinks = 0;
+                pulse_counter = 0;
     
     }
     every4th = 0;
@@ -232,5 +244,8 @@ void initialize_esp(void)
   
 }
 
-
+void interrupt_handler()
+{
+  pulse_counter = pulse_counter + 1;
+}
         
